@@ -53,7 +53,8 @@
     module_exists/1,
     title/1,
     add_observers/3,
-    remove_observers/3
+    remove_observers/3,
+    reinstall/2
 ]).
 
 -include_lib("zotonic.hrl").
@@ -138,14 +139,17 @@ active(Context) ->
 
 
 %% @doc Return whether a specific module is active.
-%% @spec active(Module::atom(), #context{}) -> [ atom() ]
+-spec active(Module::atom(), #context{}) -> boolean().
 active(Module, Context) ->
     case z_db:has_connection(Context) of
         true ->
-            case z_db:q("select true from module where name = $1 and is_active = true", [Module], Context) of
-                [{true}] -> true;
-                _ -> false
-            end;
+            F = fun() ->
+                    case z_db:q("select true from module where name = $1 and is_active = true", [Module], Context) of
+                        [{true}] -> true;
+                        _ -> false
+                    end
+                end,
+            z_depcache:memo(F, {?MODULE, {active, Module}, Context#context.host}, Context);
         false ->
             lists:member(Module, active(Context))
     end.
@@ -760,3 +764,21 @@ observes(Module, Pid) ->
     observes(Module, Pid, [_|Rest], Acc) -> 
         observes(Module, Pid, Rest, Acc).
 
+
+
+%% @doc Reinstall the given module's schema, calling
+%% Module:manage_schema(install, Context); if that function exists.
+reinstall(Module, Context) ->
+    case proplists:get_value(manage_schema, erlang:get_module_info(Module, exports)) of
+        undefined ->
+            %% nothing to do, no manage_schema
+            nop;
+        2 ->
+            %% has manage_schema/2
+            case Module:manage_schema(install, Context) of
+                D=#datamodel{} ->
+                    ok = z_datamodel:manage(Module, D, Context);
+                ok -> ok
+            end,
+            ok = z_db:flush(Context)
+    end.

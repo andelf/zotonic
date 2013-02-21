@@ -41,7 +41,7 @@
     pid_observe_development_make/3,
     file_changed/2,
     observe_admin_menu/3,
-
+    observe_module_activate/2,
     % internal (for spawn)
     page_debug_stream/3,
     page_debug_stream_loop/3
@@ -84,6 +84,15 @@ debug_stream(TargetId, What, Context) ->
 observe_debug_stream(#debug_stream{target=TargetId, what=What}, Context) ->
     start_debug_stream(TargetId, What, Context).
 
+%% @doc When activating a module while developing, call Module:manage_schema(install, Context).
+observe_module_activate(#module_activate{module=Module}, Context) ->
+    case z_module_manager:reinstall(Module, Context) of
+        ok ->
+            lager:warning("Reinstalled module: ~p", [Module]);
+        nop ->
+            nop
+    end.
+
 pid_observe_development_reload(Pid, development_reload, _Context) ->
     gen_server:cast(Pid, development_reload).
 
@@ -116,7 +125,14 @@ file_blacklisted(F) ->
 %% @doc Recompile Erlang files on the fly
 handle_file(_Verb, ".erl", F) ->
     spawn(fun() -> recompile_file(F) end),
-    "Recompile " ++ F;
+    Libdir = code:lib_dir(zotonic),
+    L = length(Libdir),
+    F2 = case string:substr(F, 1, L) of
+             Libdir ->
+                 string:substr(F, L+2);
+             _ -> F
+         end,
+    "Recompile " ++ F2;
 
 %% @doc SCSS / SASS files from lib/scss -> lib/css
 handle_file(_Verb, ".sass", F) ->
@@ -340,5 +356,3 @@ do_observe_fun(Module, F) ->
               end
       end,
       Contexts).
-                      
-

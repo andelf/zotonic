@@ -34,6 +34,11 @@ event(#postback{message={admin_tasks, [{task, "pivot_all"}]}}, Context) ->
        "The search index is rebuilding. Depending on the database size, this can take a long time.", Context);
 
 %% @doc Renumber the category tree
+event(#postback{message={admin_tasks, [{task, "site_reinstall"}]}}, Context) ->
+    do(fun() -> z_module_manager:reinstall(z_context:site(Context), Context) end,
+       "The site's data is being reinstalled. Watch the console for messages", Context);
+
+%% @doc Renumber the category tree
 event(#postback{message={admin_tasks, [{task, "renumber_categories"}]}}, Context) ->
     do(fun() -> m_category:renumber(Context) end, 
        "The category tree is rebuilding. This can take a long time.", Context).
