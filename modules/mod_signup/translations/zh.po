@@ -1,11 +1,8 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
+# Copyright (C) YEAR Free Software Foundation, Inc.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-# NB: Consider using poEdit <http://poedit.sourceforge.net>
-#
-#
+#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: zotonic\n"
